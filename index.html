@@ -38,7 +38,7 @@
 
 
 function ftToKm(f) {
-  return f/0.3048 / 1000
+  return f*0.3048 / 1000
 }
 
 const h3CellEdgeLengths = [
@@ -89,7 +89,7 @@ function hexring(k, sz, ctr, fill, sw=1) {
 
   let ring = [];
 
-  console.log(sz)
+  //console.log("hexring sz=",sz)
 
   let radius = k*sz*100*Math.sqrt(3);
   let deltaAngle = 60*Math.PI/180;
@@ -129,7 +129,6 @@ function maxpoints(k, sz, ctr, clr, sw=2) {
   circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
   circle.setAttribute("cx", ""+nearX)
   circle.setAttribute("cy", ""+nearY)
-  console.log(sz)
   circle.setAttribute("r", ""+10*sz)
   circle.setAttribute("stroke", clr);
   circle.setAttribute("fill", clr);
@@ -139,7 +138,6 @@ function maxpoints(k, sz, ctr, clr, sw=2) {
 
   circle.setAttribute("cx", ""+farX)
   circle.setAttribute("cy", ""+farY)
-  console.log(sz)
   circle.setAttribute("r", ""+10*sz)
   circle.setAttribute("stroke", clr);
   circle.setAttribute("fill", clr);
@@ -217,7 +215,7 @@ function betterfigure(vw,vh,res,kmax,radius) {
   svg.setAttribute("id", "s");
   
   let vb = "" + -vw/2 + " " + -vh/2 + " " + vw + " " + vh;
-  svg.setAttribute("viewBox",vb); //"-600 -600 1200 1200");
+  svg.setAttribute("viewBox",vb);
   svg.setAttribute("width","100%");
   svg.setAttribute("height","100%");
 
@@ -229,7 +227,7 @@ function betterfigure(vw,vh,res,kmax,radius) {
   let sw = 0.0625/2  // stroke width
   let scale = h3CellEdgeLengths[res];
 
-console.log("res",res,"scale",scale,"radius",radius)
+//console.log("res",res,"scale",scale,"radius",radius)
 
   g.appendChild(hex(scale/1, offset, "#afa", sw));
   for (let k=1;k<kmax;k++) {
@@ -244,7 +242,7 @@ console.log("res",res,"scale",scale,"radius",radius)
 
 
   let cntr = [-50*scale/1,86.6*scale/1];
-  for (let clr of ["#f00","#00f"]) {
+  for (let clr of ["#f000","#00f"]) {
     let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
 
     circle.setAttribute("cx", ""+cntr[0])
@@ -254,6 +252,7 @@ console.log("res",res,"scale",scale,"radius",radius)
     circle.setAttribute("fill", "#0000");
     g.append(circle)
 
+    /*
     circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
     circle.setAttribute("cx", ""+cntr[0])
     circle.setAttribute("cy", ""+cntr[1])
@@ -261,6 +260,7 @@ console.log("res",res,"scale",scale,"radius",radius)
     circle.setAttribute("stroke", clr);
     circle.setAttribute("fill", clr);
     g.append(circle)
+    */
 
     cntr = [0,0];
   }
@@ -282,26 +282,34 @@ function updatefigure() {
   let k = document.getElementById("kRange").value;
   document.getElementById("kText").value = k;
 
-  console.log(radius, res, k);
+  //console.log(radius, res, k);
 
   betterfigure(1000,1000, res,k,radius);
 }
 
 function computeResK() {
   let radius = ftToKm(document.getElementById("searchRange").value);
+  console.log("computeResK radius:",radius,"(km)");
 
+  // Finds the res and k, k up k=4 where the kring short diameter is >= radius
+  // by the least distance.
   kratios = [ [1, 2], [2, 4], [3, 5], [4, 7]];
+  let maxkratio = 7; 
+
   let best = {res: 0, k: 0,surplus: Infinity};
   for (let res = 0; res<h3CellEdgeLengths.length; res++) {
     let edgelength = h3CellEdgeLengths[res];
     let ratio = radius/edgelength;
+    console.log("res",res,"edgelength:",edgelength,"ratio",ratio);
 
-    if (ratio>1) {
+    if (ratio>=1 && ratio<=maxkratio) {
 
       for (let ik = 0; ik<kratios.length; ik++) {
-        let surplus = Math.abs(kratios[ik][1] - ratio)
+        let surplus = (kratios[ik][1] - ratio) * edgelength;
         let k = kratios[ik][0];
-        if (surplus<best.surplus) {
+        console.log("k",k,"surplus",surplus)
+        if (surplus>0 && surplus<best.surplus) {
+          console.log("new best")
           best = {res: res, k: k, surplus: surplus}
         }
       }
@@ -507,7 +515,7 @@ function figure(vw,vh) {
     <div>Search radius:</div>
     <div class="hbox">
       <input type="range"
-        min="10" max="2000" value="300" class="slider" id="searchRange"
+        min="10" max="200000" value="1000" class="slider" id="searchRange"
         oninput="updatefigure()">
       <input type="text" value="300" class="sliderText" id="searchText" readonly><div>&nbspft</div>
     </div>
